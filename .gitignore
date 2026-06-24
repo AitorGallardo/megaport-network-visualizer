@@ -1,0 +1,16 @@
+node_modules
+dist
+.env
+.env.local
+.env.*.local
+*.log
+.DS_Store
+
+# build artifacts
+tsconfig.tsbuildinfo
+vite.config.ts.timestamp-*.mjs
+
+# local explainer docs (not part of the app)
+/HOW_TO_USE.html
+/Megaport-HowToUseIt.html
+/Megaport_Demo_Explained.html

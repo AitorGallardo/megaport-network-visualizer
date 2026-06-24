@@ -1,0 +1,7 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html, body { margin: 0; background: #151515; font-family: Inter, 'DM Sans', system-ui, sans-serif; }
+body { color: #e9ebdf; }
+* { scrollbar-color: #3f403d #151515; }
