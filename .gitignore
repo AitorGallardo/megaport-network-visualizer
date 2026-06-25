@@ -10,7 +10,6 @@ dist
 tsconfig.tsbuildinfo
 vite.config.ts.timestamp-*.mjs
 
-# local explainer docs (not part of the app)
-/HOW_TO_USE.html
-/Megaport-HowToUseIt.html
-/Megaport_Demo_Explained.html
+# local prep docs (kept out of the app repo)
+/Megaport_Demo_Explained.md
+/APPLICATION_NOTE.md
