@@ -42,12 +42,45 @@ export function dataSourceLabel(): 'mock' | 'live' {
   return SOURCE === 'live' ? 'live' : 'mock'
 }
 
+// Raw wire shapes — the documented GET /v2/products contract. Typing the
+// boundary here means a misspelled field is a compile error, not a silent bug.
+interface RawEnd {
+  productUid?: string
+  productName?: string
+  vlan?: number
+}
+export interface RawProduct {
+  productUid: string
+  productName?: string
+  productType?: string
+  provisioningStatus?: string
+  portSpeed?: number
+  rateLimit?: number
+  speed?: number
+  locationId?: number
+  aLocationId?: number
+  aLocation?: string
+  market?: string
+  locationDetail?: { name?: string; metro?: string; country?: string }
+  provider?: string
+  csp_name?: string
+  aEnd?: RawEnd
+  bEnd?: RawEnd
+  shutDown?: boolean
+}
+interface ProductsResponse {
+  message?: string
+  terms?: string
+  data?: RawProduct[]
+}
+
 /** Public entry point used by the TanStack Query composable. */
 export async function fetchTopology(): Promise<Topology> {
-  const body = SOURCE === 'live' ? await getLiveProducts() : await delay(structuredClone(mockProductsResponse))
+  const body: ProductsResponse = SOURCE === 'live'
+    ? await getLiveProducts()
+    : await delay(structuredClone(mockProductsResponse))
   // Megaport wraps payloads as { message, terms, data: [...] }.
-  const products: any[] = Array.isArray(body?.data) ? body.data : (Array.isArray(body) ? body : [])
-  return adaptProducts(products)
+  return adaptProducts(body.data ?? [])
 }
 
 // ---------------------------------------------------------------------------
@@ -169,13 +202,20 @@ async function getAccessToken(): Promise<string> {
   return json.access_token as string
 }
 
-async function getLiveProducts(): Promise<any> {
+async function getLiveProducts(): Promise<ProductsResponse> {
   const token = await getAccessToken()
   const res = await fetch(`${BASE_URL}/v2/products`, {
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
   })
   if (!res.ok) throw new Error(`Megaport API ${res.status}: ${res.statusText}`)
-  return res.json()
+  return res.json() as Promise<ProductsResponse>
+}
+
+/** Mock-only: advance a VXC's status in the fixture (provisioning simulation). */
+export function setMockVxcStatus(productUid: string, status: ProvisioningStatus): void {
+  if (SOURCE === 'live') return
+  const p = mockProductsResponse.data.find((x) => x.productUid === productUid)
+  if (p) p.provisioningStatus = status
 }
 
 // ---------------------------------------------------------------------------
@@ -183,28 +223,44 @@ async function getLiveProducts(): Promise<any> {
 // Defensive so minor field differences across API versions don't crash the UI.
 // ---------------------------------------------------------------------------
 
-function adaptProducts(products: any[]): Topology {
+export function adaptProducts(products: RawProduct[]): Topology {
   const nodes: NetworkNode[] = []
   const vxcs: VXC[] = []
+  // Cloud on-ramps aren't standalone products — they're the B-End of a Cloud
+  // VXC. We collect those B-Ends and synthesize nodes for them below, so the
+  // graph works identically against the mock fixture and the live API.
+  const cloudEnds: { uid: string; name: string; provider: CloudProvider; status: ProvisioningStatus; aEndUid: string }[] = []
 
   for (const p of products) {
     const type = String(p.productType ?? '').toUpperCase()
 
     if (type === 'VXC') {
+      const status = normStatus(p.provisioningStatus)
+      const bEndUid = p.bEnd?.productUid ?? ''
+      const cloud = detectCloud(p.bEnd?.productName ?? p.csp_name ?? p.productName)
       vxcs.push({
         productUid: p.productUid,
         productName: p.productName ?? 'VXC',
         type: 'VXC',
-        status: normStatus(p.provisioningStatus),
+        status,
         rateLimit: Number(p.rateLimit ?? 0),
         aEndUid: p.aEnd?.productUid ?? '',
-        bEndUid: p.bEnd?.productUid ?? '',
-        cloud: detectCloud(p.bEnd?.productName ?? p.csp_name ?? p.productName),
+        bEndUid,
+        cloud,
         vlan: p.aEnd?.vlan ?? undefined,
         shutDown: !!p.shutDown,
       })
+      if (bEndUid) {
+        cloudEnds.push({
+          uid: bEndUid,
+          name: p.bEnd?.productName ?? p.csp_name ?? 'Cloud on-ramp',
+          provider: cloud,
+          status,
+          aEndUid: p.aEnd?.productUid ?? '',
+        })
+      }
     } else if (type === 'MEGAPORT' || type === 'MCR' || type === 'MCR2' || type === 'MVE') {
-      const provider = (p.provider ?? undefined) as CloudProvider | undefined
+      const provider = normProvider(p.provider)
       nodes.push({
         productUid: p.productUid,
         productName: p.productName ?? type,
@@ -222,6 +278,25 @@ function adaptProducts(products: any[]): Topology {
       })
     }
   }
+
+  // Synthesize a cloud on-ramp node for any VXC B-End that isn't an owned product.
+  const owned = new Map(nodes.map((n) => [n.productUid, n] as const))
+  for (const e of cloudEnds) {
+    if (owned.has(e.uid)) continue
+    const node: NetworkNode = {
+      productUid: e.uid,
+      productName: e.name,
+      type: 'CLOUD',
+      status: e.status,
+      portSpeed: 0,
+      // a cloud on-ramp lands in the same metro as the service it connects
+      location: owned.get(e.aEndUid)?.location ?? { id: 0, name: e.name, metro: '', country: '' },
+      provider: e.provider,
+    }
+    nodes.push(node)
+    owned.set(e.uid, node)
+  }
+
   return { nodes, vxcs }
 }
 
@@ -229,6 +304,12 @@ function normStatus(s: unknown): ProvisioningStatus {
   const v = String(s ?? '').toUpperCase()
   const allowed: ProvisioningStatus[] = ['LIVE', 'CONFIGURED', 'DEPLOYABLE', 'DECOMMISSIONED', 'CANCELLED']
   return allowed.find((a) => a === v) ?? 'CONFIGURED'
+}
+
+function normProvider(p: unknown): CloudProvider {
+  const v = String(p ?? '').toUpperCase()
+  const allowed: NonNullable<CloudProvider>[] = ['AWS', 'AZURE', 'GOOGLE', 'ORACLE', 'IBM']
+  return allowed.find((a) => a === v) ?? null
 }
 
 function detectCloud(name?: string): CloudProvider {
