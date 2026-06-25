@@ -22,10 +22,12 @@ export default {
         // Megaport brand accent (single chromatic punctuation)
         mp: '#E0182D',
         mpdark: '#B3121F',
-        // status
+        // provisioning status — mirrors STATUS_COLOR in src/constants/theme.ts
         live: '#5dcaa5',
         config: '#e0a83a',
         deploy: '#6aa8e0',
+        decom: '#8b867f',
+        down: '#6b6b6b',
       },
       fontFamily: {
         // saansFont substitute per Retool guide: Inter / DM Sans
