@@ -14,8 +14,7 @@ const connections = computed(() => {
 </script>
 
 <template>
-  <aside class="min-h-[200px] rounded-card border border-rim bg-ember p-[18px]">
-    <template v-if="node">
+  <aside v-if="node" class="rounded-card border border-rim bg-ember p-[18px]">
       <div class="flex items-center justify-between gap-2">
         <h3 class="m-0 text-base font-medium tracking-head text-parchment">{{ node.productName }}</h3>
         <span class="rounded-tag border border-rim px-[7px] py-0.5 font-mono text-[11px] uppercase text-limestone">
@@ -65,9 +64,5 @@ const connections = computed(() => {
         </ul>
         <div class="mt-2.5 text-[11.5px] text-copper">Select a connection to edit its rate or shut it down.</div>
       </div>
-    </template>
-    <div v-else class="flex h-40 items-center justify-center text-center text-sm leading-relaxed text-ash">
-      Click any node in the graph to inspect its status, location, and VXCs.
-    </div>
   </aside>
 </template>

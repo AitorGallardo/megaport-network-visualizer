@@ -32,9 +32,9 @@ function onEdit(uid: string, changes: UpdateVxcInput) { editVxc(uid, changes) }
           <h1 class="m-0 text-[44px] font-light leading-none tracking-display text-parchment">
             Network <span class="text-mp">Topology</span>
           </h1>
-          <p class="mt-3 max-w-[620px] text-base leading-relaxed text-fog">
-            Your Ports, VXCs, Cloud Routers and cloud on-ramps across every metro —
-            one interactive view of the whole deployment.
+          <p class="mt-3 max-w-[640px] text-base leading-relaxed text-fog">
+            Your Ports, VXCs, Cloud Routers and cloud on-ramps across every metro, in one
+            interactive view. Click any node to inspect its status, location and connections.
           </p>
         </div>
         <div class="flex items-center gap-3">
@@ -101,10 +101,6 @@ function onEdit(uid: string, changes: UpdateVxcInput) { editVxc(uid, changes) }
           </div>
         </div>
       </div>
-
-      <footer class="mt-6 font-mono text-xs leading-relaxed text-copper">
-        Live view of provisioned services · click a node to inspect its status, location and connections.
-      </footer>
     </div>
   </div>
 </template>
