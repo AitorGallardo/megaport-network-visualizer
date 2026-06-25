@@ -2,6 +2,8 @@
 
 [![CI](https://github.com/AitorGallardo/megaport-network-visualizer/actions/workflows/ci.yml/badge.svg)](https://github.com/AitorGallardo/megaport-network-visualizer/actions/workflows/ci.yml)
 
+**▶ [Live demo](https://aitorgallardo.github.io/megaport-network-visualizer/)** — runs on mock data, no account needed.
+
 > An unsolicited proof-of-work demo for the **Megaport Frontend Software Engineer** role — by **Aitor Gallardo**.
 > Built in Megaport's actual frontend stack: **Vue 3 · Vite · TypeScript · Tailwind · TanStack Query**.
 
