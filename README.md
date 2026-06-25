@@ -1,7 +1,11 @@
 # Megaport Topology Visualizer
 
+[![CI](https://github.com/AitorGallardo/megaport-network-visualizer/actions/workflows/ci.yml/badge.svg)](https://github.com/AitorGallardo/megaport-network-visualizer/actions/workflows/ci.yml)
+
 > An unsolicited proof-of-work demo for the **Megaport Frontend Software Engineer** role — by **Aitor Gallardo**.
 > Built in Megaport's actual frontend stack: **Vue 3 · Vite · TypeScript · Tailwind · TanStack Query**.
+
+**Interactive highlights:** live packet-flow animation with per-link utilisation · click-to-focus that dims everything off the selected path · provision a VXC and watch it climb `DEPLOYABLE → CONFIGURED → LIVE` · shut a link down / bring it back up — all persisted through a refresh.
 
 ## Why I built this
 
@@ -47,25 +51,31 @@ response shape into the same `Topology` model the UI already renders — so noth
 ```
 src/
   types/megaport.ts        # domain model (Port, VXC, MCR, MVE, cloud on-ramp)
-  data/mockProducts.ts     # fixture shaped like GET /v2/products (2 metros, MCR→3 clouds, MVE)
-  api/megaportClient.ts    # the seam: mock today, Staging API tomorrow + read/write adapters
+  constants/theme.ts       # single source of truth for status / utilisation colours
+  domain/topology.ts       # pure helpers: node grouping, committed bandwidth, neighbourhood
+  data/mockProducts.ts     # fixture shaped like GET /v2/products (clouds derived from VXC B-Ends)
+  api/megaportClient.ts    # the seam: typed read/write adapters, mock today → Staging API tomorrow
   composables/
     useTopology.ts         # TanStack Query wrapper (cache / loading / error / refetch)
-    useTopologyStore.ts    # mutable topology: create / set-rate / shut-down a VXC
+    useTopologyStore.ts    # mutable topology: create / set-rate / shut-down + provisioning sim
     useFlowElements.ts     # layered Vue Flow nodes + edges (Ports → routers → clouds)
+    useTraffic.ts          # synthetic live utilisation per VXC, for the packet-flow animation
   components/
-    TopologyGraph.vue      # interactive Vue Flow graph + legend
-    MegaportNode.vue       # custom node renderer (Port / MCR / MVE / cloud)
+    TopologyGraph.vue      # interactive Vue Flow graph: focus mode + legend
+    TrafficEdge.vue        # custom edge with animated packets whose speed tracks utilisation
+    MegaportNode.vue       # custom node renderer (Port / MCR / MVE / cloud, per-CSP accent)
     NodeDetail.vue         # inspector panel for a selected node + its VXCs
     ActionPanel.vue        # provision a VXC, edit its rate, or shut it down
-    SummaryBar.vue         # at-a-glance counts and committed bandwidth
+    SummaryBar.vue         # at-a-glance counts and committed access bandwidth
   App.vue, main.ts
 ```
 
+Tested with **Vitest** (`npm test`) — the data/domain layer (`adaptProducts` + topology helpers) — and **type-checked + built in CI** on every push.
+
 ## What I'd do next (if this were real work)
-- Create / set-rate / shut-down a VXC already round-trips in mock mode (writes persist through Refresh); wire the same `create VXC` + `find a location` flows against the live Staging API.
-- Real graph layout (force-directed / dagre) once node counts grow.
-- Playwright + Vitest coverage (the role's testing stack).
+- Wire the `create VXC` + `find a location` flows against the live Staging API (they already round-trip in mock mode, writes persisting through Refresh).
+- Real graph layout (dagre / ELK) and a geographic metro map once node counts grow.
+- Playwright end-to-end coverage on top of the Vitest unit layer.
 - Pull it into an Nx library so it drops straight into the Portal monorepo.
 
 ---
